@@ -23,6 +23,7 @@ parser.add_argument('--opt', type=str, default='RMSprop')
 parser.add_argument('--datafiles', nargs='+', default=['PM2.5'], help="list of all data filenames. \
     Assumes file ends with .csv and 1st row contains station names.")
 parser.add_argument('--coords', type=str, default='coords.json')
+parser.add_argument('--model', type=str, default='B', choices=['A', 'B', 'C'])
 
 args = parser.parse_args()
 print(f'Training configs: {args}')
@@ -31,8 +32,10 @@ n_his, n_pred = args.n_his, args.n_pred
 channels = len(args.datafiles)
 Ks, Kt = args.ks, args.kt
 # blocks: settings of channel size in st_conv_blocks / bottleneck design
-blocks = [[channels, 32, 64], [64, 32, 128]]
-# blocks = [[args.channels, 32, 32], [64, 128, 128]] # for STGCN-B
+if args.model in ['A', 'B']:
+    blocks = [[channels, 32, 64], [64, 32, 128]] # for STGCN-A, B
+else:
+    blocks = [[channels, 32, 32], [64, 128, 128]] # for STGCN-C
 
 mat, cols = create_data_matrix(args.datafiles)
 n = len(cols)

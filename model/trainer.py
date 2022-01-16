@@ -1,6 +1,5 @@
 from data_loader.data_utils import Dataset, gen_batch
-from model.model import STGCN_Model, STGCNB_Model
-from os.path import join as pjoin
+from model.model import STGCNA_Model, STGCNB_Model, STGCNC_Model
 from utils.math_utils import evaluation, MAPE, MAE, RMSE
 
 import tensorflow as tf
@@ -29,7 +28,12 @@ def model_train(inputs: Dataset, graph_kernel, blocks, args, sum_path='./output/
     val_data = inputs.get_data("val")
     steps_per_epoch = math.ceil(train_data.shape[0]/batch_size)
 
-    model = STGCN_Model(train_data.shape[1:], batch_size, graph_kernel, n_his, Ks, Kt, blocks, "GLU", "layer", 0.1)
+    if args.model == 'A':
+        model = STGCNA_Model(train_data.shape[1:], batch_size, graph_kernel, n_his, Ks, Kt, blocks, "GLU", "layer", 0.1)
+    elif args.model == 'B':
+        model = STGCNB_Model(train_data.shape[1:], batch_size, graph_kernel, n_his, Ks, Kt, blocks, "GLU", "layer", 0.1)
+    elif args.model == 'C':
+        model = STGCNC_Model(train_data.shape[1:], batch_size, graph_kernel, n_his, Ks, Kt, blocks, "GLU", "layer", 0.1)
     lr_func = keras.optimizers.schedules.PiecewiseConstantDecay(
         [int(epochs/4)*steps_per_epoch, int(2*epochs/4)*steps_per_epoch, int(3*epochs/4)*steps_per_epoch],
         [args.lr, 0.7*args.lr, 0.4*args.lr, 0.1*args.lr]

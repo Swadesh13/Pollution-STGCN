@@ -150,7 +150,7 @@ class OutputLayer(keras.layers.Layer):
     :param norm: str, normalization function.
     :return: tensor, [batch_size, 1, n_route, outc].
     '''
-    def __init__(self, Kt, n, channel, outc=1, act_func="GLU", norm="L2"):
+    def __init__(self, Kt, n, channel, outc=1, act_func="GLU", norm="layer"):
         super().__init__()
         self.Kt = Kt
         self.n = n
@@ -193,7 +193,7 @@ class STConvBlock(keras.layers.Layer):
     :param pad: string, Temporal layer padding - VALID or SAME.
     :return: tensor, [batch_size, time_step, n_route, c_out].
     '''
-    def __init__(self, graph_kernel, Ks, Kt, channels, act_func='GLU', norm='L2', dropout=0.2, pad='VALID'):
+    def __init__(self, graph_kernel, Ks, Kt, channels, act_func='GLU', norm='layer', dropout=0.2, pad='VALID'):
         super().__init__()
         self.norm = norm
         c_si, c_t, c_oo = channels
@@ -225,6 +225,7 @@ class TConvBlock(keras.layers.Layer):
     Temporal convolutional block, which contains three temporal gated convolution layers.
     :param x: tensor, [batch_size, time_step, n_route, c_in].
     :param Kt: int, kernel size of temporal convolution.
+    :param c_in: int, size of input channel.
     :param channels: list, channel configs of a single st_conv block.
     :param act_func: str, activation function.
     :param norm: str, normalization function.
@@ -232,13 +233,15 @@ class TConvBlock(keras.layers.Layer):
     :param pad: string, Temporal layer padding - VALID or SAME.
     :return: tensor, [batch_size, time_step, n_route, c_out].
     '''
-    def __init__(self, Kt, channels, act_func='GLU', norm="L2", dropout=0.2, pad="SAME"):
+    def __init__(self, Kt, c_in, channels, act_func='GLU', norm="layer", dropout=0.2, pad="VALID"):
         super().__init__()
         self.norm = norm
-        c_si, c_t, c_oo = channels
-        self.layer1 = TemporalConvLayer(Kt, c_si, c_t, act_func, pad)
-        self.layer2 = TemporalConvLayer(Kt, c_t, c_t, act_func, pad)
-        self.layer3 = TemporalConvLayer(Kt, c_t, c_oo, act_func, pad)
+        self.tconv_layers = []
+
+        self.tconv_layers.append(TemporalConvLayer(Kt, c_in, channels[0], act_func, pad))
+        for i in range(1, len(channels)):
+            self.tconv_layers.append(TemporalConvLayer(Kt, channels[i-1], channels[i], act_func, pad))
+
         self.dropout_layer = keras.layers.Dropout(rate = dropout)
         if norm == "batch":
             self.normalization = keras.layers.BatchNormalization(axis=[2,3])
@@ -248,13 +251,12 @@ class TConvBlock(keras.layers.Layer):
             raise NotImplementedError(f'ERROR: Normalization function "{norm}" is not implemented.')
 
     def call(self, x:tf.Tensor):
-        x1 = self.layer1(x)
-        x2 = self.layer2(x1)
-        x3 = self.layer3(x2)
+        for layer in self.tconv_layers:
+            x = layer(x)
         if self.norm == "L2":
-            out = tf.nn.l2_normalize(x3, axis=[2,3])
+            out = tf.nn.l2_normalize(x, axis=[2,3])
         else:
-            out = self.normalization(x3)
+            out = self.normalization(x)
         return self.dropout_layer(out)
 
 
@@ -264,19 +266,21 @@ class SConvBlock(keras.layers.Layer):
     :param x: tensor, [batch_size, time_step, n_route, c_in].
     :param graph_kernel: tensor, [n_route, Ks*n_route].
     :param Ks: int, kernel size of spatial convolution.
+    :param c_in: int, size of input channel.
     :param channels: list, channel configs of a single st_conv block.
     :param norm: str, normalization function.
     :param dropout: float, dropout ratio.
     :return: tensor, [batch_size, time_step, n_route, c_out].
     '''
-    def __init__(self, graph_kernel, Ks, channels, norm="L2", dropout=0.2):
+    def __init__(self, graph_kernel, Ks, c_in, channels, norm="layer", dropout=0.2):
         super().__init__()
         self.norm = norm
-        c_si, c_t, c_oo = channels
-        n = graph_kernel.shape[0]
-        self.layer1 = SpatioConvLayer(graph_kernel, Ks, c_si, c_t)
-        self.layer2 = SpatioConvLayer(graph_kernel, Ks, c_t, c_t)
-        self.layer3 = SpatioConvLayer(graph_kernel, Ks, c_t, c_oo)
+        self.sconv_layers = []
+
+        self.sconv_layers.append(SpatioConvLayer(graph_kernel, Ks, c_in, channels[0]))
+        for i in range(1, len(channels)):
+            self.sconv_layers.append(SpatioConvLayer(graph_kernel, Ks, channels[i-1], channels[i]))
+        
         self.dropout_layer = keras.layers.Dropout(rate = dropout)
         if norm == "batch":
             self.normalization = keras.layers.BatchNormalization(axis=[2,3])
@@ -286,11 +290,10 @@ class SConvBlock(keras.layers.Layer):
             raise NotImplementedError(f'ERROR: Normalization function "{norm}" is not implemented.')
 
     def call(self, x:tf.Tensor):
-        x1 = self.layer1(x)
-        x2 = self.layer2(x1)
-        x3 = self.layer3(x2)
+        for layer in self.sconv_layers:
+            x = layer(x)
         if self.norm == "L2":
-            out = tf.nn.l2_normalize(x3, axis=[2,3])
+            out = tf.nn.l2_normalize(x, axis=[2,3])
         else:
-            out = self.normalization(x3)
+            out = self.normalization(x)
         return self.dropout_layer(out)

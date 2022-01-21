@@ -16,9 +16,6 @@ class Dataset(object):
     def get_stats(self):
         return {'mean': self.mean, 'std': self.std}
 
-    def get_val_stats(self):
-        return {'val mean': np.mean(self.__data['val']), 'val std': np.std(self.__data['val'])}
-
     def get_len(self, type):
         return len(self.__data[type])
 
@@ -76,8 +73,7 @@ def seq_gen(len_seq, data_seq, offset, n_frame, n_route, C_0=1):
 def data_gen(data_seq, n_route, n_frame=21, C_0=1):
     '''
     Source file load and dataset generation.
-    :param mat: np.array, 2D data matrix.
-    :param data_config: tuple, the configs of dataset in train, validation, test.
+    :param data_seq: np.array, 2D data matrix.
     :param n_route: int, the number of routes in the graph.
     :param n_frame: int, the number of frame within a standard sequence unit, which contains n_his = 12 and n_pred = 9 (3 /15 min, 6 /30 min & 9 /45 min).
     :param C_0: int, the size of input channel.
@@ -85,7 +81,7 @@ def data_gen(data_seq, n_route, n_frame=21, C_0=1):
     '''
     # generate training, validation and test data
 
-    l = len(data_seq)
+    l = data_seq.shape[0]
     n_train, n_val, n_test = int(l*.92), int(l*.08), int(l*.08)
 
     seq_train = seq_gen(n_train, data_seq, 0, n_frame, n_route, C_0)
@@ -93,7 +89,7 @@ def data_gen(data_seq, n_route, n_frame=21, C_0=1):
     seq_test = seq_gen(n_test, data_seq, n_train, n_frame, n_route, C_0)
 
     # x_stats: dict, the stats for the train dataset, including the value of mean and standard deviation.
-    x_stats = {'mean': np.mean(seq_train), 'std': np.std(seq_train)}
+    x_stats = {'mean': np.mean(data_seq[:len(seq_train)]), 'std': np.std(data_seq[:len(seq_train)])}
 
     # x_train, x_val, x_test: np.array, [sample_size, n_frame, n_route, channel_size].
     x_train = z_score(seq_train, x_stats['mean'], x_stats['std'])

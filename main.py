@@ -47,8 +47,9 @@ L = scaled_laplacian(W)
 Lk = cheb_poly_approx(L, Ks, n)
 
 PeMS = data_gen(mat, n, n_his + n_pred, channels)
-# print(f'>> Loading dataset with Mean: {PeMS.mean:.2f}, STD: {PeMS.std:.2f}')
+# print(f'>> Loading Train dataset with Mean: {PeMS.mean:.2f}, STD: {PeMS.std:.2f}')
 print("Training Data shape:", PeMS.get_data("train").shape)
+print("Validation Data shape:", PeMS.get_data("val").shape)
 
 if __name__ == '__main__':
     model_train(PeMS, Lk, blocks, args)

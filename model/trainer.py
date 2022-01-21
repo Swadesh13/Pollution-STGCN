@@ -27,6 +27,8 @@ def model_train(inputs: Dataset, graph_kernel, blocks, args, sum_path='./output/
     train_data = inputs.get_data("train")
     val_data = inputs.get_data("val")
     steps_per_epoch = math.ceil(train_data.shape[0]/batch_size)
+    train_length = train_data.shape[0]
+    val_length = val_data.shape[0]
 
     if args.model == 'A':
         model = STGCNA_Model(train_data.shape[1:], batch_size, graph_kernel, n_his, Ks, Kt, blocks, "GLU", "layer", 0.1)
@@ -62,13 +64,13 @@ def model_train(inputs: Dataset, graph_kernel, blocks, args, sum_path='./output/
             train_loss += loss
             model.optimizer.apply_gradients(zip(gradients, model.trainable_weights))
 
-        print(f"Epoch {epoch} finished!", "Training Time:", f"{time.time()-start_time}s")
-        print("Train L2 Loss: ", train_loss.numpy())
+        print(f"Epoch {epoch} finished!", "Training Time:", f"{time.time()-start_time:.4f}s")
+        print("Train L2 Loss: %.4f" % (train_loss.numpy()/train_length))
 
         val_train = val_data[:, :n_his, :, :]
         val_preds = model(val_train, training=False)
         val_loss = custom_loss(val_data[:, n_his:n_his+1, :, :], val_preds)
-        print("Val L2 Loss: ", val_loss.numpy())
+        print("Val L2 Loss: %.4f" % (val_loss.numpy()/val_length))
         for i, col in enumerate(args.datafiles):
             v = val_data[:, n_his:n_his+1, :, i:i+1]*inputs.std+inputs.mean
             v_ = val_preds[:, :, :, i:i+1]*inputs.std+inputs.mean

@@ -1,6 +1,7 @@
 import argparse
 import os
 import datetime
+from model.tester import model_test
 from model.trainer import model_train
 from data_loader.data_utils import *
 from utils.math_graph import *
@@ -25,6 +26,7 @@ parser.add_argument('--coords', type=str, default='coords.json')
 parser.add_argument('--model', type=str, default='B', choices=['A', 'B', 'C'])
 parser.add_argument('--output', type=str, default='output', help='output dir')
 parser.add_argument('-retrain', default=False, action='store_true', help='Retrain from model in "--output"/model.')
+parser.add_argument('-test', default=False, action='store_true', help='Test on model in "--output"/model.')
 
 args = parser.parse_args()
 args.n_pred = sorted(args.n_pred)
@@ -34,7 +36,10 @@ channels = len(args.datafiles)
 Ks, Kt = args.ks, args.kt
 current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 args.output_dir = os.path.join(args.output, current_time)
-args.model_path = os.path.join(args.output_dir, 'model')
+if args.retrain or args.test:
+    args.model_path = os.path.join(args.output_dir, 'model')
+else:
+    args.model_path = os.path.join(args.output, 'model')
 args.log_dir = os.path.join(args.output_dir, 'logs')
 os.makedirs(args.model_path, exist_ok=True)
 os.makedirs(args.log_dir, exist_ok=True)
@@ -62,4 +67,7 @@ print("Training Data shape:", PeMS.get_data("train").shape)
 print("Validation Data shape:", PeMS.get_data("val").shape)
 
 if __name__ == '__main__':
-    model_train(PeMS, Lk, blocks, args)
+    if not(args.test):
+        model_train(PeMS, Lk, blocks, args)
+    else:
+        model_test(PeMS, args.batch_size, args.n_his, args.n_pred, args.model_path, args.datafiles)

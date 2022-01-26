@@ -1,5 +1,6 @@
 import numpy as np
-
+from scipy.stats import pearsonr
+from sklearn.metrics import r2_score
 
 def z_score(x, mean, std):
     '''
@@ -55,9 +56,29 @@ def MAE(v, v_):
     return np.mean(np.abs(v_ - v))
 
 
+def Pearsonr(v, v_):
+    '''
+    Pearson correlation.
+    :param v: np.ndarray or int, ground truth.
+    :param v_: np.ndarray or int, prediction.
+    :return: int, Pearson's r over all elements of input.
+    '''
+    return pearsonr(v.flatten(), v_.flatten())[0]
+
+
+def Rsquared(v, v_):
+    '''
+    R-squared value.
+    :param v: np.ndarray or int, ground truth.
+    :param v_: np.ndarray or int, prediction.
+    :return: int, R-squared value over all elements of input.
+    '''
+    return r2_score(v.flatten(), v_.flatten())
+
+
 def evaluation(y, y_, x_stats):
     '''
-    Evaluation function: interface to calculate MAPE, MAE and RMSE between ground truth and prediction.
+    Evaluation function: interface to calculate MAPE, MAE, RMSE, Pearson's r and R-squared between ground truth and prediction.
     Extended version: multi-step prediction can be calculated by self-calling.
     :param y: np.ndarray or int, ground truth.
     :param y_: np.ndarray or int, prediction.
@@ -70,7 +91,7 @@ def evaluation(y, y_, x_stats):
         # single_step case
         v = z_inverse(y, x_stats['mean'], x_stats['std'])
         v_ = z_inverse(y_, x_stats['mean'], x_stats['std'])
-        return np.array([MAPE(v, v_), MAE(v, v_), RMSE(v, v_)])
+        return np.array([MAPE(v, v_), MAE(v, v_), RMSE(v, v_), Pearsonr(v, v_), Rsquared(v, v_)])
     # else:
     #     # multi_step case
     #     tmp_list = []

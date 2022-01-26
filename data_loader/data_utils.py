@@ -2,7 +2,6 @@ from utils.math_utils import z_score
 import os
 import numpy as np
 import pandas as pd
-from scipy.ndimage.filters import gaussian_filter1d
 
 class Dataset(object):
     def __init__(self, data, stats):
@@ -69,7 +68,7 @@ def seq_gen(len_seq, data_seq, offset, n_frame, n_route, C_0=1):
         tmp_seq[i, :, :, :] = np.reshape(d, (*(d.shape[:-1]), n_route, C_0))
     return tmp_seq
 
-#* Training data only. Only test??
+
 def data_gen(data_seq, n_route, n_frame=21, C_0=1):
     '''
     Source file load and dataset generation.

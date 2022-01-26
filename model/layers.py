@@ -33,6 +33,7 @@ class TemporalConvLayer(keras.layers.Layer):
         self.conv_weights = self.add_weight(name="conv_weights", shape=[self.Kt, 1, self.c_in, c_out], dtype=tf.float64, initializer='glorot_uniform', trainable=True)
         self.conv_bias =  self.add_weight(name="conv_bias", shape=[c_out], dtype=tf.float64, trainable=True)
 
+    @tf.function
     def call(self, x: tf.Tensor):
         _, T, n, _ = x.shape
         x = tf.cast(x, tf.float64)
@@ -86,6 +87,7 @@ class SpatioConvLayer(keras.layers.Layer):
         self.conv_weights = self.add_weight(name="conv_weights", shape=[self.Ks*self.c_in, self.c_out], dtype=tf.float64, initializer='glorot_uniform', trainable=True)
         self.conv_bias =  self.add_weight(name="conv_bias", shape=[self.c_out], dtype=tf.float64, trainable=True)
 
+    @tf.function
     def call(self, x: tf.Tensor):
         _, T, n, _ = x.shape
         x = tf.cast(x, tf.float64)
@@ -133,6 +135,7 @@ class FullyConLayer(layers.Layer):
         self.conv_weights = self.add_weight(name="conv_weights", shape=[1, 1, self.channel, self.outc], dtype=tf.float64, initializer='glorot_uniform', trainable=True)
         self.conv_bias =  self.add_weight(name="conv_bias", shape=[self.n, self.outc], dtype=tf.float64, trainable=True)
 
+    @tf.function
     def call(self, x: tf.Tensor):
         x = tf.cast(x, tf.float64)
         return tf.nn.conv2d(x, self.conv_weights, strides=[1, 1, 1, 1], padding='SAME') + self.conv_bias
@@ -144,6 +147,7 @@ class OutputLayer(keras.layers.Layer):
     which map outputs of the last st_conv block to a single-step prediction.
     :param x: tensor, [batch_size, time_step, n_route, channel].
     :param Kt: int, kernel size of temporal convolution.
+    :param n: int, number of route / size of graph.
     :param channel: int, input channel size.
     :param outc: int, output channel size.
     :param act_func: str, activation function.
@@ -166,7 +170,8 @@ class OutputLayer(keras.layers.Layer):
             self.normalization = keras.layers.LayerNormalization(axis=[2,3])
         elif norm != "L2":
             raise NotImplementedError(f'ERROR: Normalization function "{norm}" is not implemented.')
-    
+
+    @tf.function
     def call(self, x:tf.Tensor):
         x_i = self.layer1(x)
         if self.norm == "L2":
@@ -209,6 +214,7 @@ class STConvBlock(keras.layers.Layer):
         elif norm != "L2":
             raise NotImplementedError(f'ERROR: Normalization function "{norm}" is not implemented.')
 
+    @tf.function
     def call(self, x:tf.Tensor):
         x1 = self.layer1(x)
         x2 = self.layer2(x1)
@@ -250,6 +256,7 @@ class TConvBlock(keras.layers.Layer):
         elif norm != "L2":
             raise NotImplementedError(f'ERROR: Normalization function "{norm}" is not implemented.')
 
+    @tf.function
     def call(self, x:tf.Tensor):
         for layer in self.tconv_layers:
             x = layer(x)
@@ -289,6 +296,7 @@ class SConvBlock(keras.layers.Layer):
         elif norm != "L2":
             raise NotImplementedError(f'ERROR: Normalization function "{norm}" is not implemented.')
 
+    @tf.function
     def call(self, x:tf.Tensor):
         for layer in self.sconv_layers:
             x = layer(x)

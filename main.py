@@ -2,7 +2,6 @@ import argparse
 import os
 import datetime
 from model.trainer import model_train
-# from model.tester import model_test
 from data_loader.data_utils import *
 from utils.math_graph import *
 import tensorflow as tf
@@ -13,7 +12,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_his', type=int, default=12)
-parser.add_argument('--n_pred', nargs='+', type=int, default=[9], help='List of all times at which prediction is required')
+parser.add_argument('--n_pred', nargs='+', type=int, default=[9], help='List of all times at which prediction is required. Eg: [1, 3]')
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--ks', type=int, default=3)
@@ -25,8 +24,10 @@ parser.add_argument('--datafiles', nargs='+', default=['PM2.5'], help="list of a
 parser.add_argument('--coords', type=str, default='coords.json')
 parser.add_argument('--model', type=str, default='B', choices=['A', 'B', 'C'])
 parser.add_argument('--output', type=str, default='output', help='output dir')
+parser.add_argument('-retrain', default=False, action='store_true', help='Retrain from model in "--output"/model.')
 
 args = parser.parse_args()
+args.n_pred = sorted(args.n_pred)
 print(f'Training configs: {args}')
 
 channels = len(args.datafiles)
@@ -62,4 +63,3 @@ print("Validation Data shape:", PeMS.get_data("val").shape)
 
 if __name__ == '__main__':
     model_train(PeMS, Lk, blocks, args)
-    # model_test(PeMS, PeMS.get_len('test'), n_his, n_pred, args.inf_mode)

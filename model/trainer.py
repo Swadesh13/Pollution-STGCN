@@ -1,6 +1,7 @@
 from data_loader.data_utils import Dataset, gen_batch
 from model.model import STGCNA_Model, STGCNB_Model, STGCNC_Model
-from utils.math_utils import evaluation, MAPE, MAE, RMSE, Pearsonr, Rsquared
+from utils.math_utils import custom_loss, evaluation, MAPE, MAE, RMSE, Pearsonr, Rsquared
+from model.tester import model_inference
 
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -9,11 +10,6 @@ import time
 import tqdm
 import math
 import os
-import datetime
-
-def custom_loss(y_true, y_pred) -> tf.Tensor:
-    # return tf.reduce_mean(tf.math.squared_difference(y_true, y_pred))
-    return tf.nn.l2_loss(y_true - y_pred)
 
 def model_train(inputs: Dataset, graph_kernel, blocks, args):
     '''
@@ -36,7 +32,9 @@ def model_train(inputs: Dataset, graph_kernel, blocks, args):
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
     test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
-    if args.model == 'A':
+    if args.retrain:
+        model = keras.models.load_model(args.model_path, custom_objects={'custom_loss': custom_loss})
+    elif args.model == 'A':
         model = STGCNA_Model(train_data.shape[1:], graph_kernel, n_his, Ks, Kt, blocks, "GLU", "layer", 0.1)
     elif args.model == 'B':
         model = STGCNB_Model(train_data.shape[1:], graph_kernel, n_his, Ks, Kt, blocks, "GLU", "layer", 0.1)
@@ -102,12 +100,11 @@ def model_train(inputs: Dataset, graph_kernel, blocks, args):
 
     keras.backend.clear_session()
     model = keras.models.load_model(args.model_path, custom_objects={'custom_loss':custom_loss})
-    x_test = inputs.get_data("test")[:, :n_his, :, :]
-    y_test = inputs.get_data("test")[:, n_his:n_his+1, :, :]
-    preds = model(x_test).numpy()
+    y_test, test_evaluation = model_inference(model, inputs, batch_size, n_his, n_pred)
 
-    print("\nTEST")
-    for i, col in enumerate(args.datafiles):
-        test_m = evaluation(y_test[:,:,:,i:i+1], preds[:,:,:,i:i+1], inputs.get_stats())
-        print("%s\tMAPE %.4f, MAE %.4f, RMSE %.4f, Corr %.4f, R2 %.4f" % (col, *test_m))
-    return float(test_m[1])
+    print("\nTEST evaluations:")
+    for key in test_evaluation.keys():
+        mets = test_evaluation[key]
+        print("\nTime Step", key)
+        for col, met in zip(args.datafiles, mets):
+            print("%s\tMAPE %.4f%%, MAE %.4f, RMSE %.4f, Corr %.4f, R2 %.4f" % (col, *met))

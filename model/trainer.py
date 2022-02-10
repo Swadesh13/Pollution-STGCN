@@ -21,8 +21,8 @@ def model_train(inputs: Dataset, graph_kernel, blocks, args):
     n_his, n_pred = args.n_his, args.n_pred
     Ks, Kt = args.ks, args.kt
     batch_size, epochs, opt = args.batch_size, args.epochs, args.opt
-    train_data = inputs.get_data("train")[:32*4]
-    val_data = inputs.get_data("val")[:32*4]
+    train_data = inputs.get_data("train")
+    val_data = inputs.get_data("val")
     steps_per_epoch = math.ceil(train_data.shape[0]/batch_size)
     train_length = train_data.shape[0]
     val_length = val_data.shape[0]

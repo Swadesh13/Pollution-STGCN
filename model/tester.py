@@ -24,7 +24,6 @@ def multi_pred(model, seq, batch_size, n_his, n_pred, dynamic_batch=True):
     for i, data in enumerate(gen_batch(seq, batch_size, dynamic_batch=dynamic_batch)):
         # Note: use np.copy() to avoid the modification of source data.
         test = np.copy(data[:, 0:n_his, :, :])
-        # test_seq = np.copy(i[:, 0:n_his + 1, :, :])
         for j in range(max(n_pred)):
             pred = model(test).numpy()
             pred = np.reshape(pred, (test.shape[0], test.shape[2], test.shape[3]))
@@ -43,6 +42,7 @@ def model_inference(model, inputs, batch_size, n_his, n_pred):
     :param n_his: int, the length of historical records for training.
     :param n_pred: list, time steps of prediction. Eg: [1,3] - print prediction evaluation at 1 and 3 time_steps.
     :return eval_test: dict, evaluation results per data per time step.
+    :return y_test: npp.ndarray, model prediction for max(n_pred) steps.
     '''
     x_test, x_stats = inputs.get_data('test'), inputs.get_stats()
 
@@ -75,7 +75,7 @@ def model_test(inputs, batch_size, n_his, n_pred, load_path, columns):
     eval_test = {}
     for i in n_pred:
         eval_test[i] = []
-        for j in y_test.shape[-1]:
+        for j in range(y_test.shape[-1]):
             eval_test[i].append(evaluation(x_test[:, n_his+i-1, :, j], y_test[:, i-1, :, j], x_stats))
 
     for key in eval_test.keys():
@@ -85,3 +85,4 @@ def model_test(inputs, batch_size, n_his, n_pred, load_path, columns):
     
     print(f'Model Test Time {time.time() - start_time:.3f}s')
     print('Testing model finished!')
+    return y_test, eval_test

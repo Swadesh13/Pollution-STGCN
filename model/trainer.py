@@ -1,6 +1,6 @@
 from data_loader.data_utils import Dataset, gen_batch
 from model.model import STGCNA_Model, STGCNB_Model, STGCNC_Model
-from utils.math_utils import custom_loss, evaluation, MAPE, MAE, RMSE, Pearsonr, Rsquared
+from utils.math_utils import custom_loss, MAPE, MAE, RMSE, Pearsonr, Rsquared
 from model.tester import model_inference
 
 import tensorflow as tf
@@ -21,8 +21,8 @@ def model_train(inputs: Dataset, graph_kernel, blocks, args):
     n_his, n_pred = args.n_his, args.n_pred
     Ks, Kt = args.ks, args.kt
     batch_size, epochs, opt = args.batch_size, args.epochs, args.opt
-    train_data = inputs.get_data("train")
-    val_data = inputs.get_data("val")
+    train_data = inputs.get_data("train")[:32*4]
+    val_data = inputs.get_data("val")[:32*4]
     steps_per_epoch = math.ceil(train_data.shape[0]/batch_size)
     train_length = train_data.shape[0]
     val_length = val_data.shape[0]
@@ -76,19 +76,20 @@ def model_train(inputs: Dataset, graph_kernel, blocks, args):
             tf.summary.scalar('loss', train_loss.numpy()*2/train_length, step=epoch)
 
         val_train = val_data[:, :n_his, :, :]
-        val_preds = model(val_train, training=False)
+        val_preds = model(val_train, training=False).numpy()
         val_loss = custom_loss(val_data[:, n_his:n_his+1, :, :], val_preds)
         print("Val L2 Loss: %.4f" % (val_loss.numpy()))
         with test_summary_writer.as_default():
             tf.summary.scalar('loss', val_loss.numpy()*2/val_length, step=epoch)
         for i, col in enumerate(args.datafiles):
             v = val_data[:, n_his:n_his+1, :, i:i+1]*inputs.std+inputs.mean
-            v_ = val_preds[:, :, :, i:i+1].numpy()*inputs.std+inputs.mean
+            v_ = val_preds[:, :, :, i:i+1]*inputs.std+inputs.mean
             print(col, end='\t')
             for m in zip(['MAE', 'MAPE', 'RMSE', 'Corr', 'R2'], [MAE(v, v_), MAPE(v, v_), RMSE(v, v_), Pearsonr(v, v_), Rsquared(v, v_)]):
                 print(m[0], "%.4f" % m[1], end="\t")
                 with test_summary_writer.as_default():
                     tf.summary.scalar(f'{col}_{m[0]}', m[1], step=epoch)
+            print()
 
         v = val_data[:, n_his:n_his+1, :, 0]*inputs.std+inputs.mean
         v_ = val_preds[:, :, :, 0]*inputs.std+inputs.mean
@@ -108,3 +109,7 @@ def model_train(inputs: Dataset, graph_kernel, blocks, args):
         print("\nTime Step", key)
         for col, met in zip(args.datafiles, mets):
             print("%s\tMAPE %.4f%%, MAE %.4f, RMSE %.4f, Corr %.4f, R2 %.4f" % (col, *met))
+
+    np.save(os.path.join(args.output_dir, "test.npy"), inputs.get_data('test'))
+    np.save(os.path.join(args.output_dir, "pred.npy"), y_test)
+    return y_test, test_evaluation

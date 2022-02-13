@@ -51,7 +51,7 @@ def model_inference(model, inputs, batch_size, n_his, n_pred):
     for i in n_pred:
         eval_test[i] = []
         for j in range(y_test.shape[-1]):
-            eval_test[i].append(evaluation(x_test[:, n_his+i-1, :, j], y_test[:, i-1, :, j], x_stats))
+            eval_test[i].append(evaluation(x_test[:, n_his+i-1, :, j], y_test[:, i-1, :, j], x_stats).tolist())
     return y_test, eval_test
 
 
@@ -76,7 +76,7 @@ def model_test(inputs, batch_size, n_his, n_pred, load_path, columns):
     for i in n_pred:
         eval_test[i] = []
         for j in range(y_test.shape[-1]):
-            eval_test[i].append(evaluation(x_test[:, n_his+i-1, :, j], y_test[:, i-1, :, j], x_stats))
+            eval_test[i].append(evaluation(x_test[:, n_his+i-1, :, j], y_test[:, i-1, :, j], x_stats).tolist())
 
     for key in eval_test.keys():
         mets = eval_test[key]

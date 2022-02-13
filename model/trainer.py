@@ -10,6 +10,7 @@ import time
 import tqdm
 import math
 import os
+import json
 
 def model_train(inputs: Dataset, graph_kernel, blocks, args):
     '''
@@ -102,6 +103,8 @@ def model_train(inputs: Dataset, graph_kernel, blocks, args):
     keras.backend.clear_session()
     model = keras.models.load_model(args.model_path, custom_objects={'custom_loss':custom_loss})
     y_test, test_evaluation = model_inference(model, inputs, batch_size, n_his, n_pred)
+    with open(os.path.join(args.output_dir, "evaluations.json"), "w") as f:
+        json.dump(test_evaluation, f)
 
     print("\nTEST evaluations:")
     for key in test_evaluation.keys():

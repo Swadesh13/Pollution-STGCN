@@ -77,7 +77,7 @@ def Rsquared(v, v_):
     return r2_score(v.flatten(), v_.flatten())
 
 
-def evaluation(y, y_, x_stats):
+def evaluation(y, y_, x_stats) -> np.ndarray:
     '''
     Evaluation function: interface to calculate MAPE, MAE, RMSE, Pearson's r and R-squared between ground truth and prediction.
     Extended version: multi-step prediction can be calculated by self-calling.

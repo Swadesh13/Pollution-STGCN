@@ -37,9 +37,9 @@ Ks, Kt = args.ks, args.kt
 current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 args.output_dir = os.path.join(args.output, current_time)
 if args.retrain or args.test:
-    args.model_path = os.path.join(args.output_dir, 'model')
-else:
     args.model_path = os.path.join(args.output, 'model')
+else:
+    args.model_path = os.path.join(args.output_dir, 'model')
 args.log_dir = os.path.join(args.output_dir, 'logs')
 os.makedirs(args.model_path, exist_ok=True)
 os.makedirs(args.log_dir, exist_ok=True)

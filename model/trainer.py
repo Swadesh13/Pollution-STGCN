@@ -1,7 +1,7 @@
 from data_loader.data_utils import Dataset, gen_batch
 from model.model import STGCNA_Model, STGCNB_Model, STGCNC_Model
 from utils.math_utils import custom_loss, MAPE, MAE, RMSE, Pearsonr, Rsquared
-from model.tester import model_inference
+from model.tester import model_inference, multi_pred
 
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -77,7 +77,7 @@ def model_train(inputs: Dataset, graph_kernel, blocks, args):
             tf.summary.scalar('loss', train_loss.numpy()*2/train_length, step=epoch)
 
         val_train = val_data[:, :n_his, :, :]
-        val_preds = model(val_train, training=False).numpy()
+        val_preds = multi_pred(model, val_train, batch_size, n_his, [1], dynamic_batch=True)
         val_loss = custom_loss(val_data[:, n_his:n_his+1, :, :], val_preds)
         print("Val L2 Loss: %.4f" % (val_loss.numpy()))
         with test_summary_writer.as_default():
